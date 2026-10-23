@@ -63,35 +63,33 @@ The `/register` endpoint lets us encrypt any ASCII tier except the literal
 
 ### How GCM produces a cookie
 
-For a single 16-byte plaintext block $P$, GCM computes:
+For a single 16-byte plaintext block $$P$$, GCM computes:
 
 $$
 C = P \oplus E_K(J_1), \qquad
 T = \big(C \cdot H^2\big) \oplus \big(L \cdot H\big) \oplus E_K(J_0),
 $$
 
-where $H = E_K(0^{128})$ is the hash subkey, $J_0$ is the initial counter block
-derived from the nonce, $J_1$ is the next counter, $L$ is the 128-bit block
-encoding the ciphertext length (here $L = 128$, since one block is 128 bits),
-and all multiplications are in $\mathrm{GF}(2^{128})$. The tag is just the
-one-block GHASH of $C$, masked by $E_K(J_0)$.
+where $$H = E_K(0^{128})$$ is the hash subkey, $$J_0$$ is the initial counter block
+derived from the nonce, $$J_1$$ is the next counter, $$L$$ is the 128-bit block
+encoding the ciphertext length (here $$L = 128$$, since one block is 128 bits),
+and all multiplications are in $$\mathrm{GF}(2^{128})$$. The tag is just the
+one-block GHASH of $$C$$, masked by $$E_K(J_0)$$.
 
-Because the nonce is fixed, $H$, $E_K(J_0)$, and the keystream block $E_K(J_1)$
+Because the nonce is fixed, $$H$$, $$E_K(J_0)$$, and the keystream block $$E_K(J_1)$$
 are **the same for every cookie the server issues**. That constancy is the
 whole attack.
 
 ### Part 1 — forging the ciphertext
 
-With a constant keystream $E_K(J_1)$, encryption is a one-time pad reused across
-messages. Register for `main`, whose plaintext $P_{\text{main}} =
-\texttt{sponsortier=main}$ is known, and recover the keystream directly:
+With a constant keystream $$E_K(J_1)$$, encryption is a one-time pad reused across
+messages. Register for `main`, whose plaintext $$P_{\text{main}} = \texttt{sponsortier=main}$$ is known, and recover the keystream directly:
 
 $$
 E_K(J_1) = C_{\text{main}} \oplus P_{\text{main}}.
 $$
 
-Then the ciphertext for our target plaintext $P_{\text{flag}} =
-\texttt{sponsortier=flag}$ is simply:
+Then the ciphertext for our target plaintext $$P_{\text{flag}} = \texttt{sponsortier=flag}$$ is simply:
 
 $$
 C_{\text{flag}} = E_K(J_1) \oplus P_{\text{flag}}
@@ -104,15 +102,15 @@ still wrong, and GCM will reject it. We need the matching tag.
 ### Part 2 — recovering H
 
 This is the classic GCM nonce-reuse forgery. Take two cookies over equal-length
-single blocks — say `main` and `test` — giving $(C_1, T_1)$ and $(C_2, T_2)$.
-Both share the same $H$, $E_K(J_0)$, and length block $L$, so subtracting
+single blocks — say `main` and `test` — giving $$(C_1, T_1)$$ and $$(C_2, T_2)$$.
+Both share the same $$H$$, $$E_K(J_0)$$, and length block $$L$$, so subtracting
 (XORing) the two tag equations cancels everything except one term:
 
 $$
 T_1 \oplus T_2 = (C_1 \oplus C_2)\cdot H^2.
 $$
 
-Everything there is known except $H$. Solve for $H^2$ and take a square root
+Everything there is known except $$H$$. Solve for $$H^2$$ and take a square root
 (squaring is a bijection in characteristic 2, so the root is unique):
 
 $$
@@ -130,15 +128,15 @@ def recover_h(c1, c2, t1, t2):
 
 ### Part 3 — forging the tag
 
-With $H$ known we peel off the key-dependent mask from a known tag. Define the
+With $$H$$ known we peel off the key-dependent mask from a known tag. Define the
 one-block GHASH (with the length block appended) as
-$\mathrm{GH}(C) = (C\cdot H^2)\oplus(L\cdot H)$. Then from the `main` cookie:
+$$\mathrm{GH}(C) = (C\cdot H^2)\oplus(L\cdot H)$$. Then from the `main` cookie:
 
 $$
 E_K(J_0) = T_1 \oplus \mathrm{GH}(C_1).
 $$
 
-Now forge the tag for our crafted ciphertext $C_{\text{flag}}$:
+Now forge the tag for our crafted ciphertext $$C_{\text{flag}}$$:
 
 $$
 T_{\text{flag}} = \mathrm{GH}(C_{\text{flag}}) \oplus E_K(J_0).
@@ -216,7 +214,7 @@ guarantees at once:
 - **Confidentiality** goes first — a fixed nonce reuses the keystream, so one
   known plaintext exposes it and lets you re-encrypt anything of that length.
 - **Integrity** goes next — repeated nonces linearise the GHASH tag equations,
-  leaking the subkey $H$ and then $E_K(J_0)$, which is enough to forge tags at will.
+  leaking the subkey $$H$$ and then $$E_K(J_0)$$, which is enough to forge tags at will.
 
 The practical lesson: never pass the key (or any fixed value) as a GCM nonce,
 and never let an API's nonce be caller- or key-derived in a way that repeats.
