@@ -1,0 +1,19 @@
+---
+layout: default
+---
+<section class="intro">
+  <p class="eyebrow">A collection of solves</p>
+  <h1>CTF Writeups</h1>
+  <p>Mostly cryptography. Challenge notes, the reasoning behind each attack, and reproducible solve scripts.</p>
+</section>
+<section aria-label="Writeups" class="entries">
+  {% assign entries = site.writeups | sort: 'date' | reverse %}
+  {% for entry in entries %}
+  <article class="entry">
+    <p class="meta">{{ entry.event | escape }} · {{ entry.category | escape }}{% if entry.template %} · Template{% endif %}</p>
+    <h2><a href="{{ entry.url | relative_url }}">{{ entry.title | escape }}</a></h2>
+    <p>{{ entry.summary | escape }}</p>
+    <p class="meta"><time datetime="{{ entry.date | date: '%Y-%m-%d' }}">{{ entry.date | date: '%d %b %Y' }}</time> · {{ entry.difficulty | escape }}{% for tag in entry.tags %} · {{ tag | escape }}{% endfor %}</p>
+  </article>
+  {% endfor %}
+</section>

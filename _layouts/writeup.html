@@ -1,0 +1,15 @@
+---
+layout: default
+---
+<article>
+  <a class="back" href="{{ '/' | relative_url }}">← All writeups</a>
+  <header class="article-header">
+    {% if page.template %}<p class="eyebrow">Example · reusable template</p>{% endif %}
+    <h1>{{ page.title | escape }}</h1>
+    <p class="summary">{{ page.summary | escape }}</p>
+    <p class="meta">{{ page.event | escape }} · {{ page.category | escape }} · {{ page.difficulty | escape }} · <time datetime="{{ page.date | date: '%Y-%m-%d' }}">{{ page.date | date: '%d %b %Y' }}</time></p>
+    <p class="tags">{% for tag in page.tags %}<span>{{ tag | escape }}</span>{% endfor %}</p>
+  </header>
+  <div class="prose">{{ content }}</div>
+  <p class="back"><a href="{{ '/' | relative_url }}">← Back to all writeups</a></p>
+</article>

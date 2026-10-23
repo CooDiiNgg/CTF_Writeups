@@ -1,0 +1,28 @@
+title: CTF Writeups
+description: A collection of writeups for various Capture The Flag (CTF) challenges.
+url: "https://coodiingg.github.io"
+baseurl: "/CTF_Writeups"
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  math_engine: mathjax
+collections:
+  writeups:
+    output: true
+    permalink: /writeups/:path/
+defaults:
+  - scope:
+      path: ""
+      type: writeups
+    values:
+      layout: writeup
+      math: true
+exclude:
+  - AGENTS.md
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - scripts
+  - vendor
+  - LICENSE
