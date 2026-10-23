@@ -4,7 +4,7 @@ date: 2026-10-23
 event: "ECSC 2026 (Bochum, Germany)"
 category: Crypto
 difficulty: Medium
-tags: [aes-gcm, nonce-reuse, forbidden-attack, ghash, authenticated-encryption]
+tags: [aes-gcm, nonce-reuse, ghash, authenticated-encryption]
 summary: "The sponsor portal encrypts its session cookie with AES-256-GCM but reuses the AES key as the GCM nonce. A fixed nonce leaks the keystream and the GHASH subkey, letting us forge a valid cookie for the sold-out `flag` tier."
 ---
 
@@ -101,7 +101,7 @@ $$
 That gives a ciphertext that decrypts to `sponsortier=flag` — but its tag is
 still wrong, and GCM will reject it. We need the matching tag.
 
-### Part 2 — recovering H (the "forbidden attack")
+### Part 2 — recovering H
 
 This is the classic GCM nonce-reuse forgery. Take two cookies over equal-length
 single blocks — say `main` and `test` — giving $(C_1, T_1)$ and $(C_2, T_2)$.
@@ -147,13 +147,6 @@ $$
 The cookie `C_flag || T_flag` now decrypts **and** authenticates as
 `sponsortier=flag`.
 
-> This is where my first attempt failed. I had the `recover_h` step working, but
-> then computed the tag as `GHASH(H, ciphertext)` over the *original* `main`
-> ciphertext — with no length block and without removing the $E_K(J_0)$ mask. A
-> raw GHASH is not a GCM tag. The fix is the three lines above: GHASH the
-> *forged* ciphertext (plus the length block), and XOR in $E_K(J_0)$ recovered
-> from a known good tag.
-
 ## Solve
 
 The solver separates the maths from the transport. `forge(register)` takes any
@@ -184,14 +177,14 @@ def forge(register):
 Against a live instance:
 
 ```sh
-BASE_URL=https://<instance-host>/ python3 _writeups/ecsc-2026-sponsors-ecsc/solve.py
+BASE_URL=https://<instance-host>/ python3 solve.py
 ```
 
 To verify the full forge offline (reproduces the server's crypto in-process and
 has PyCryptodome's real GCM accept the forged cookie):
 
 ```sh
-python3 _writeups/ecsc-2026-sponsors-ecsc/solve.py --local
+python3 solve.py --local
 ```
 
 Expected output:
@@ -222,9 +215,8 @@ guarantees at once:
 
 - **Confidentiality** goes first — a fixed nonce reuses the keystream, so one
   known plaintext exposes it and lets you re-encrypt anything of that length.
-- **Integrity** goes next — repeated nonces linearise the GHASH tag equations
-  (the "forbidden attack"), leaking the subkey $H$ and then $E_K(J_0)$, which is
-  enough to forge tags at will.
+- **Integrity** goes next — repeated nonces linearise the GHASH tag equations,
+  leaking the subkey $H$ and then $E_K(J_0)$, which is enough to forge tags at will.
 
 The practical lesson: never pass the key (or any fixed value) as a GCM nonce,
 and never let an API's nonce be caller- or key-derived in a way that repeats.
@@ -234,5 +226,5 @@ AES-GCM-SIV instead of hand-fixing the nonce.
 ## References
 
 - D. McGrew, J. Viega. *The Galois/Counter Mode of Operation (GCM)* / NIST SP 800-38D.
-- A. Joux. *Authentication Failures in NIST version of GCM* — the original nonce-reuse ("forbidden") attack.
+- A. Joux. *Authentication Failures in NIST version of GCM* — the original nonce-reuse attack.
 - S. Böck, A. Zauner, et al. *Nonce-Disrespecting Adversaries: Practical Forgery Attacks on GCM in TLS*, WOOT 2016.
